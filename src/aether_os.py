@@ -69,8 +69,8 @@ class AetherOS:
         self.w = self.root.winfo_screenwidth()
         self.h = self.root.winfo_screenheight()
         
-        # Enable true mobile fullscreen & completely hide the mouse cursor
-        self.root.attributes('-fullscreen', True)
+        # Force direct fullscreen root mapping without window manager
+        self.root.overrideredirect(True)
         self.root.config(cursor="none")
         self.root.geometry(f"{self.w}x{self.h}+0+0")
         
@@ -81,6 +81,7 @@ class AetherOS:
             cursor="none"
         )
         self.canvas.pack(fill=tk.BOTH, expand=True)
+        self.root.update()
 
         # OS State
         self.current_app = None
