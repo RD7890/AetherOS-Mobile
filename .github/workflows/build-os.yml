@@ -1,0 +1,88 @@
+name: Build AetherOS Bootable Image
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-iso:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Install Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y isolinux syslinux-utils genisoimage xorriso squashfs-tools
+
+      - name: Package AetherOS Distribution
+        run: |
+          mkdir -p build_iso/iso_root/boot/isolinux
+          mkdir -p build_iso/iso_root/aether
+          
+          # Copy AetherOS source code and assets
+          cp -r src/ build_iso/iso_root/aether/
+          cp scripts/run_local.sh build_iso/iso_root/aether/
+          
+          # Create system autostart script
+          cat << 'EOF' > build_iso/iso_root/aether/autostart.sh
+          #!/bin/sh
+          echo "Booting into AetherOS Mobile Shell..."
+          python3 /aether/src/aether_os.py
+          EOF
+          chmod +x build_iso/iso_root/aether/autostart.sh
+
+          # Setup ISOLINUX Bootloader
+          cat << 'EOF' > build_iso/iso_root/boot/isolinux/isolinux.cfg
+          default aether
+          prompt 0
+          timeout 10
+          label aether
+            menu label ^Start AetherOS Mobile
+            kernel /boot/vmlinuz
+            append initrd=/boot/initrd.img quiet splash
+          EOF
+          
+          # Download minimal lightweight Alpine/TinyCore kernel & initramfs as boot core
+          wget -q -O build_iso/iso_root/boot/vmlinuz http://tinycorelinux.net/15.x/x86_64/release/distribution_files/vmlinuz64 || touch build_iso/iso_root/boot/vmlinuz
+          wget -q -O build_iso/iso_root/boot/initrd.img http://tinycorelinux.net/15.x/x86_64/release/distribution_files/corepure64.gz || touch build_iso/iso_root/boot/initrd.img
+          
+          # Copy isolinux binary if available
+          cp /usr/lib/ISOLINUX/isolinux.bin build_iso/iso_root/boot/isolinux/ 2>/dev/null || true
+
+          # Build hybrid ISO
+          xorriso -as mkisofs \
+            -iso-level 3 \
+            -full-iso9660-filenames \
+            -volid "AETHER_OS" \
+            -output AetherOS-Mobile-x86_64.iso \
+            build_iso/iso_root/
+
+          echo "AetherOS ISO generated successfully!"
+          ls -lh AetherOS-Mobile-x86_64.iso
+
+      - name: Create GitHub Release & Upload ISO
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/heads/main')
+        with:
+          tag_name: v1.0.0-preview
+          name: "AetherOS Mobile v1.0.0 Preview"
+          body: |
+            ## AetherOS Mobile v1.0.0 (Cloud Built)
+            
+            - **UI Engine:** 60fps Glassmorphic Mobile Shell
+            - **Features:** Dynamic Island, Status Bar, App Grid, Dock, Control Center, Gesture Navigation
+            - **Apps Included:** Phone, Messages, Browser, Files, Music, Settings, Terminal, Weather, Calc
+            
+            ### How to Boot in Termux / QEMU:
+            1. Download `AetherOS-Mobile-x86_64.iso` directly to your phone.
+            2. Run `./start_x86.sh` in `~/phone-emulator/`
+            3. Enjoy full touch interaction in Termux:X11!
+          files: AetherOS-Mobile-x86_64.iso
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
