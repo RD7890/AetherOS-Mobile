@@ -65,22 +65,20 @@ class AetherOS:
         self.root.title("AetherOS Mobile")
         self.root.configure(bg=THEME["bg"])
         
-        # Adaptive Dimensions
-        sw = self.root.winfo_screenwidth()
-        sh = self.root.winfo_screenheight()
+        # Adaptive Native Phone Dimensions
+        self.w = self.root.winfo_screenwidth()
+        self.h = self.root.winfo_screenheight()
         
-        # If in Termux:X11 with portrait settings or desktop fallback:
-        self.w = min(sw, 720) if sw > 200 else 720
-        self.h = min(sh, 1520) if sh > 200 else 1280
-        if sw < 800 and sh > 600:
-            self.w, self.h = sw, sh
-            
+        # Enable true mobile fullscreen & completely hide the mouse cursor
+        self.root.attributes('-fullscreen', True)
+        self.root.config(cursor="none")
         self.root.geometry(f"{self.w}x{self.h}+0+0")
         
-        # Canvas Root
+        # Canvas Root (100% screen fill, no cursor)
         self.canvas = tk.Canvas(
             root, width=self.w, height=self.h,
-            bg=THEME["bg"], highlightthickness=0
+            bg=THEME["bg"], highlightthickness=0,
+            cursor="none"
         )
         self.canvas.pack(fill=tk.BOTH, expand=True)
 

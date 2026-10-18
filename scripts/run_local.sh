@@ -6,16 +6,17 @@ cd "$DIR"
 
 echo "=== Launching AetherOS Mobile ==="
 
-# 1. Stop any background QEMU/VNC tasks
+# 1. Stop any background tasks
 pkill -f "qemu-system" 2>/dev/null || true
 pkill -f "vncviewer" 2>/dev/null || true
 pkill -x "xclock" 2>/dev/null || true
+pkill -f "aether_os.py" 2>/dev/null || true
 
-# 2. Ensure Termux:X11 is running
+# 2. Ensure Termux:X11 is running with -nocursor (Direct Touch)
 export DISPLAY=:0
 if ! pgrep -f "termux-x11" > /dev/null; then
-    echo "Starting Termux:X11 server on :0..."
-    termux-x11 :0 -ac >/dev/null 2>&1 &
+    echo "Starting Termux:X11 server on :0 (no cursor)..."
+    termux-x11 :0 -ac -nocursor >/dev/null 2>&1 &
     sleep 2
 fi
 
